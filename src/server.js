@@ -7,8 +7,6 @@ const PORT = 4000;
 const app = express();
 const schema = require('./schema');
 
-app.use('*/dist', express.static(path.join(__dirname, '../../dist')));
-
 app.post(
     '/graphql',
     graphqlHTTP({
@@ -25,10 +23,7 @@ app.get(
     })
 );
 
-app.get('/*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../../dist/index.html'));
-});
-
 app.listen(PORT, () => {
-    console.log(`Listening on http://localhost:${PORT}...`);
+    console.log(`Listening on port: ${PORT}`);
+    console.log(`Graphiql interface at http://localhost:${PORT}/graphql`);
 });
