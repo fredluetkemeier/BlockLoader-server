@@ -1,5 +1,4 @@
 const express = require('express');
-const path = require('path');
 const { graphqlHTTP } = require('express-graphql');
 
 const PORT = 4000;
