@@ -1,28 +1,18 @@
 const express = require('express');
-const { graphqlHTTP } = require('express-graphql');
+const { ApolloServer } = require('apollo-server-express');
 
 const PORT = 4000;
 
-const app = express();
-const schema = require('./schema');
+const { typeDefs, resolvers } = require('./schema');
 
-app.post(
-    '/graphql',
-    graphqlHTTP({
-        schema,
-        graphiql: false,
-    })
-);
-
-app.get(
-    '/graphql',
-    graphqlHTTP({
-        schema,
-        graphiql: true,
-    })
-);
-
-app.listen(PORT, () => {
-    console.log(`Listening on port: ${PORT}`);
-    console.log(`Graphiql interface at http://localhost:${PORT}/graphql`);
+const server = new ApolloServer({
+    typeDefs,
+    resolvers,
 });
+
+const app = express();
+server.applyMiddleware({ app });
+
+app.listen({ port: PORT }, () =>
+    console.log(`Server ready at http://localhost:${PORT}${server.graphqlPath}`)
+);

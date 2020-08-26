@@ -19,6 +19,8 @@
     },
     "homepage": "https://github.com/fredluetkemeier/mpm-server#readme",
     "dependencies": {
+        "apollo-server-express": "^2.16.1",
+        "cors": "^2.8.5",
         "express": "^4.17.1",
         "express-graphql": "^0.11.0",
         "graphql": "^15.3.0",

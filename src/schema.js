@@ -1,6 +1,7 @@
 const fetch = require('node-fetch');
+const { gql } = require('apollo-server-express');
+
 const {
-    GraphQLSchema,
     GraphQLObjectType,
     GraphQLString,
     GraphQLList,
@@ -79,4 +80,87 @@ const QueryType = new GraphQLObjectType({
     }),
 });
 
-module.exports = new GraphQLSchema({ query: QueryType });
+const typeDefs = gql`
+    enum Category {
+        ALL
+        FABRIC
+    }
+
+    type Query {
+        mod(id: String!): Mod!
+        mods(ids: [String!]!): [Mod!]!
+        findMods(
+            searchTerm: String = ""
+            category: Category = NONE
+            gameVersion: String = ""
+            page: Int = 1
+            pageSize: Int = 10
+        ): [Mod!]!
+    }
+
+    type Mod {
+        id: ID!
+        name: String!
+        authors: Author!
+        thumbnail: Thumbnail!
+        externalLink: String!
+        summary: String!
+        downloadCount: String!
+        files: File!
+    }
+
+    type Author {
+        id: ID!
+        name: String!
+    }
+
+    type Thumbnail {
+        id: ID!
+        url: String!
+        title: String!
+    }
+
+    type File {
+        id: ID!
+        name: String!
+        date: String!
+        url: String!
+        minecraftVersion: String!
+    }
+`;
+
+const resolvers = {
+    Category: {
+        ALL: '',
+        FABRIC: '4780',
+    },
+    Query: {
+        mod: (parent, args) =>
+            fetch(
+                `https://addons-ecs.forgesvc.net/api/v2/addon/${args.id}`
+            ).then((response) => response.json()),
+
+        mods: (parent, args) =>
+            fetch(`https://addons-ecs.forgesvc.net/api/v2/addon`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(args.ids),
+            }).then((response) => response.json()),
+        findMods: (
+            parent,
+            { searchTerm, category, gameVersion, page, pageSize }
+        ) => {
+            const index = (page - 1) * pageSize;
+
+            const query = `gameId=${MINECRAFT_GAME_ID}&sectionId=${MODS_SECTION_ID}&searchFilter=${searchTerm}&categoryId=${category}&gameVersion=${gameVersion}&index=${index}&pageSize=${pageSize}`;
+
+            return fetch(
+                `https://addons-ecs.forgesvc.net/api/v2/addon/search?${query}`
+            ).then((response) => response.json());
+        },
+    },
+};
+
+module.exports = { typeDefs, resolvers };
