@@ -1,84 +1,9 @@
-const fetch = require('node-fetch');
 const { gql } = require('apollo-server-express');
-
-const {
-    GraphQLObjectType,
-    GraphQLString,
-    GraphQLList,
-    GraphQLNonNull,
-    GraphQLEnumType,
-} = require('graphql');
-const { ModType } = require('./types/Mod');
+const fetch = require('node-fetch');
+const { moment } = require('moment');
 
 const MINECRAFT_GAME_ID = '432';
 const MODS_SECTION_ID = '6';
-
-const CategoryType = new GraphQLEnumType({
-    name: 'Category',
-    description: 'A section category, used to filter mods',
-
-    values: {
-        NONE: { value: '' },
-        FABRIC: { value: '4780' },
-    },
-});
-
-const QueryType = new GraphQLObjectType({
-    name: 'Query',
-    description: 'The root query object',
-
-    fields: () => ({
-        mod: {
-            type: ModType,
-            args: {
-                id: { type: GraphQLNonNull(GraphQLString) },
-            },
-            resolve: (root, args) =>
-                fetch(
-                    `https://addons-ecs.forgesvc.net/api/v2/addon/${args.id}`
-                ).then((response) => response.json()),
-        },
-        mods: {
-            type: GraphQLList(ModType),
-            args: {
-                ids: { type: GraphQLNonNull(GraphQLList(GraphQLString)) },
-            },
-            resolve: (root, args) =>
-                fetch(`https://addons-ecs.forgesvc.net/api/v2/addon`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(args.ids),
-                }).then((response) => response.json()),
-        },
-        findMods: {
-            type: GraphQLNonNull(GraphQLList(ModType)),
-            args: {
-                searchTerm: { type: GraphQLString, defaultValue: '' },
-                category: {
-                    type: CategoryType,
-                    defaultValue: CategoryType.NONE,
-                },
-                gameVersion: { type: GraphQLString, defaultValue: '' },
-                page: { type: GraphQLString, defaultValue: '1' },
-                pageSize: { type: GraphQLString, defaultValue: '10' },
-            },
-            resolve: (
-                root,
-                { searchTerm, category, gameVersion, page, pageSize }
-            ) => {
-                const index = (page - 1) * pageSize;
-
-                const query = `gameId=${MINECRAFT_GAME_ID}&sectionId=${MODS_SECTION_ID}&searchFilter=${searchTerm}&categoryId=${category}&gameVersion=${gameVersion}&index=${index}&pageSize=${pageSize}`;
-
-                return fetch(
-                    `https://addons-ecs.forgesvc.net/api/v2/addon/search?${query}`
-                ).then((response) => response.json());
-            },
-        },
-    }),
-});
 
 const typeDefs = gql`
     enum Category {
@@ -134,6 +59,7 @@ const resolvers = {
         ALL: '',
         FABRIC: '4780',
     },
+
     Query: {
         mod: (parent, args) =>
             fetch(
@@ -161,6 +87,57 @@ const resolvers = {
             ).then((response) => response.json());
         },
     },
+
+    Mod: {
+        id: (parent) => parent.id,
+        name: (parent) => parent.name,
+        authors: (parent) => parent.authors,
+        thumbnail: (parent) =>
+            parent.attachments.find((attachment) => attachment.isDefault) ||
+            attachments[0],
+        externalLink: (parent) => parent.websiteUrl,
+        summary: (parent) => parent.summary,
+        downloadCount: (parent) => parent.downloadCount,
+        files: (parent) => parent.latestFiles,
+    },
+
+    Author: {
+        id: (parent) => parent.id,
+        name: (parent) => parent.name,
+    },
+
+    Thumbnail: {
+        id: (parent) => parent.id,
+        url: (parent) => parent.thumbnailUrl,
+        title: (parent) => parent.title,
+    },
+
+    File: {
+        id: (parent) => parent.id,
+        name: (parent) => parent.fileName,
+        date: (parent) => moment(file.fileDate).format('X'),
+        url: (parent) => parent.downloadUrl,
+        minecraftVersion: (parent) => {
+            const [newest] = file.sortableGameVersion
+                .sort((a, b) => {
+                    const timestampA = toPosixTime(a);
+                    const timestampB = toPosixTime(b);
+
+                    if (timestampA == timestampB) {
+                        return 0;
+                    }
+
+                    return timestampA < timestampB ? 1 : -1;
+                })
+                .map((entry) => entry.gameVersion);
+
+            return newest;
+        },
+    },
 };
 
 module.exports = { typeDefs, resolvers };
+
+function toPosixTime(timestamp) {
+    return moment(timestamp).format('X');
+}
