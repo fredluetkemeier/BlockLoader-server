@@ -1,6 +1,6 @@
 const { gql } = require('apollo-server-express');
 const fetch = require('node-fetch');
-const { moment } = require('moment');
+const moment = require('moment');
 
 const MINECRAFT_GAME_ID = '432';
 const MODS_SECTION_ID = '6';
@@ -31,7 +31,7 @@ const typeDefs = gql`
         externalLink: String!
         summary: String!
         downloadCount: String!
-        files: File!
+        files: [File!]!
     }
 
     type Author {
@@ -98,7 +98,23 @@ const resolvers = {
         externalLink: (parent) => parent.websiteUrl,
         summary: (parent) => parent.summary,
         downloadCount: (parent) => parent.downloadCount,
-        files: (parent) => parent.latestFiles,
+        files: (parent) =>
+            fetch(
+                `https://addons-ecs.forgesvc.net/api/v2/addon/${parent.id}/files`
+            )
+                .then((response) => response.json())
+                .then((files) =>
+                    files.sort(({ fileDate: a }, { fileDate: b }) => {
+                        const posixA = toPosixTime(a);
+                        const posixB = toPosixTime(b);
+
+                        if (posixA == posixB) {
+                            return 0;
+                        }
+
+                        return posixA < posixB ? 1 : -1;
+                    })
+                ),
     },
 
     Author: {
@@ -114,25 +130,10 @@ const resolvers = {
 
     File: {
         id: (parent) => parent.id,
-        name: (parent) => parent.fileName,
-        date: (parent) => moment(file.fileDate).format('X'),
+        name: (parent) => parent.displayName,
+        date: (parent) => parent.fileDate,
         url: (parent) => parent.downloadUrl,
-        minecraftVersion: (parent) => {
-            const [newest] = file.sortableGameVersion
-                .sort((a, b) => {
-                    const timestampA = toPosixTime(a);
-                    const timestampB = toPosixTime(b);
-
-                    if (timestampA == timestampB) {
-                        return 0;
-                    }
-
-                    return timestampA < timestampB ? 1 : -1;
-                })
-                .map((entry) => entry.gameVersion);
-
-            return newest;
-        },
+        minecraftVersion: (parent) => parent.gameVersion[0],
     },
 };
 
