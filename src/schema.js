@@ -26,12 +26,14 @@ const typeDefs = gql`
     type Mod {
         id: ID!
         name: String!
-        authors: Author!
+        authors: [Author!]!
         thumbnail: Thumbnail!
         externalLink: String!
         summary: String!
         downloadCount: String!
         files: [File!]!
+        latestFile: File!
+        popularity: Float!
     }
 
     type Author {
@@ -103,18 +105,15 @@ const resolvers = {
                 `https://addons-ecs.forgesvc.net/api/v2/addon/${parent.id}/files`
             )
                 .then((response) => response.json())
-                .then((files) =>
-                    files.sort(({ fileDate: a }, { fileDate: b }) => {
-                        const posixA = toPosixTime(a);
-                        const posixB = toPosixTime(b);
-
-                        if (posixA == posixB) {
-                            return 0;
-                        }
-
-                        return posixA < posixB ? 1 : -1;
-                    })
-                ),
+                .then((files) => files.sort(fileByDate)),
+        latestFile: (parent) =>
+            fetch(
+                `https://addons-ecs.forgesvc.net/api/v2/addon/${parent.id}/files`
+            )
+                .then((response) => response.json())
+                .then((files) => files.sort(fileByDate))
+                .then((files) => (files.length > 0 ? files[0] : [])),
+        popularity: (parent) => parent.popularityScore,
     },
 
     Author: {
@@ -130,7 +129,7 @@ const resolvers = {
 
     File: {
         id: (parent) => parent.id,
-        name: (parent) => parent.displayName,
+        name: (parent) => parent.fileName.trim(),
         date: (parent) => parent.fileDate,
         url: (parent) => parent.downloadUrl,
         minecraftVersion: (parent) => parent.gameVersion[0],
@@ -141,4 +140,15 @@ module.exports = { typeDefs, resolvers };
 
 function toPosixTime(timestamp) {
     return moment(timestamp).format('X');
+}
+
+function fileByDate({ fileDate: a }, { fileDate: b }) {
+    const posixA = toPosixTime(a);
+    const posixB = toPosixTime(b);
+
+    if (posixA == posixB) {
+        return 0;
+    }
+
+    return posixA < posixB ? 1 : -1;
 }
