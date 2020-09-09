@@ -1,5 +1,6 @@
 const express = require('express');
 const { ApolloServer } = require('apollo-server-express');
+const responseCachePlugin = require('apollo-server-plugin-response-cache');
 
 const PORT = 4000;
 
@@ -8,6 +9,10 @@ const { typeDefs, resolvers } = require('./schema');
 const server = new ApolloServer({
     typeDefs,
     resolvers,
+    plugins: [responseCachePlugin()],
+    cacheControl: {
+        defaultMaxAge: 60,
+    },
 });
 
 const app = express();

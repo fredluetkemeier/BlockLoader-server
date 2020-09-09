@@ -20,7 +20,7 @@ const typeDefs = gql`
             gameVersion: String = ""
             page: Int = 1
             pageSize: Int = 10
-        ): [Mod!]!
+        ): [Mod!]! @cacheControl(maxAge: 600)
     }
 
     type Mod {
