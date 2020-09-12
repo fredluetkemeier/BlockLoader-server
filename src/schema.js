@@ -32,7 +32,7 @@ const typeDefs = gql`
         summary: String!
         downloadCount: String!
         files: [File!]!
-        latestFile: File!
+        latestFile(minecraftVersion: String = ""): File
         popularity: Float!
     }
 
@@ -52,7 +52,7 @@ const typeDefs = gql`
         name: String!
         date: String!
         url: String!
-        minecraftVersion: String!
+        minecraftVersions: [String!]!
     }
 `;
 
@@ -106,13 +106,19 @@ const resolvers = {
             )
                 .then((response) => response.json())
                 .then((files) => files.sort(fileByDate)),
-        latestFile: (parent) =>
-            fetch(
+        latestFile: async (parent, args) => {
+            const files = await fetch(
                 `https://addons-ecs.forgesvc.net/api/v2/addon/${parent.id}/files`
-            )
-                .then((response) => response.json())
-                .then((files) => files.sort(fileByDate))
-                .then((files) => (files.length > 0 ? files[0] : [])),
+            ).then((response) => response.json());
+
+            const sortedFiles = files.sort(fileByDate);
+
+            return args.minecraftVersion
+                ? sortedFiles.filter((file) =>
+                      file.gameVersion.includes(args.minecraftVersion)
+                  )[0]
+                : sortedFiles[0];
+        },
         popularity: (parent) => parent.popularityScore,
     },
 
@@ -130,9 +136,9 @@ const resolvers = {
     File: {
         id: (parent) => parent.id,
         name: (parent) => parent.fileName.trim(),
-        date: (parent) => parent.fileDate,
+        date: (parent) => toPosixTime(parent.fileDate),
         url: (parent) => parent.downloadUrl,
-        minecraftVersion: (parent) => parent.gameVersion[0],
+        minecraftVersions: (parent) => parent.gameVersion,
     },
 };
 
