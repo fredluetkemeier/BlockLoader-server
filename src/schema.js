@@ -11,7 +11,7 @@ const typeDefs = gql`
         FABRIC
     }
 
-    type Query {
+    type Query @cacheControl(maxAge: 600) {
         mod(id: String!): Mod!
         mods(ids: [String!]!): [Mod!]!
         findMods(
@@ -20,17 +20,17 @@ const typeDefs = gql`
             gameVersion: String = ""
             page: Int = 1
             pageSize: Int = 10
-        ): [Mod!]! @cacheControl(maxAge: 600)
+        ): [Mod!]!
     }
 
     type Mod {
         id: ID!
         name: String!
         authors: [Author!]!
-        thumbnail: Thumbnail!
+        thumbnail: Thumbnail
         externalLink: String!
         summary: String!
-        downloadCount: String!
+        downloadCount: Int!
         files: [File!]!
         latestFile(minecraftVersion: String = ""): File
         popularity: Float!
@@ -42,9 +42,8 @@ const typeDefs = gql`
     }
 
     type Thumbnail {
-        id: ID!
         url: String!
-        title: String!
+        description: String!
     }
 
     type File {
@@ -82,7 +81,7 @@ const resolvers = {
         ) => {
             const index = (page - 1) * pageSize;
 
-            const query = `gameId=${MINECRAFT_GAME_ID}&sectionId=${MODS_SECTION_ID}&searchFilter=${searchTerm}&categoryId=${category}&gameVersion=${gameVersion}&index=${index}&pageSize=${pageSize}`;
+            const query = `gameId=${MINECRAFT_GAME_ID}&sectionId=${MODS_SECTION_ID}&searchFilter=${searchTerm.toLowerCase()}&categoryId=${category}&gameVersion=${gameVersion}&index=${index}&pageSize=${pageSize}`;
 
             return fetch(
                 `https://addons-ecs.forgesvc.net/api/v2/addon/search?${query}`
@@ -94,12 +93,20 @@ const resolvers = {
         id: (parent) => parent.id,
         name: (parent) => parent.name,
         authors: (parent) => parent.authors,
-        thumbnail: (parent) =>
-            parent.attachments.find((attachment) => attachment.isDefault) ||
-            attachments[0],
+        thumbnail: (parent) => {
+            if (parent.attachments) {
+                return (
+                    parent.attachments.find(
+                        (attachment) => attachment.isDefault
+                    ) || attachments[0]
+                );
+            }
+
+            return null;
+        },
         externalLink: (parent) => parent.websiteUrl,
         summary: (parent) => parent.summary,
-        downloadCount: (parent) => parent.downloadCount,
+        downloadCount: (parent) => parseInt(parent.downloadCount),
         files: (parent) =>
             fetch(
                 `https://addons-ecs.forgesvc.net/api/v2/addon/${parent.id}/files`
@@ -128,9 +135,8 @@ const resolvers = {
     },
 
     Thumbnail: {
-        id: (parent) => parent.id,
         url: (parent) => parent.thumbnailUrl,
-        title: (parent) => parent.title,
+        description: (parent) => parent.title,
     },
 
     File: {
