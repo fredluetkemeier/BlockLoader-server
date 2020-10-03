@@ -6,6 +6,22 @@ const MINECRAFT_GAME_ID = '432';
 const MODS_SECTION_ID = '6';
 
 const typeDefs = gql`
+    ##
+    ## Cache Control
+    ##
+    directive @cacheControl(
+        maxAge: Int
+        scope: CacheControlScope
+    ) on OBJECT | FIELD_DEFINITION
+
+    enum CacheControlScope {
+        PUBLIC
+        PRIVATE
+    }
+
+    ##
+    ## Schema
+    ##
     enum Category {
         ALL
         FABRIC
