@@ -4,7 +4,7 @@
     "description": "A backend to support the mpm client",
     "main": "./src/server.js",
     "scripts": {
-        "start": "node ./src/server.js",
+        "start": "cross-env NODE_ENV=production node ./src/server.js",
         "watch": "nodemon ./src/server.js"
     },
     "repository": {
@@ -29,6 +29,7 @@
         "node-fetch": "^2.6.0"
     },
     "devDependencies": {
+        "cross-env": "^7.0.2",
         "nodemon": "^2.0.4"
     }
 }
