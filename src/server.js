@@ -1,4 +1,5 @@
 const express = require('express');
+const cors = require('cors');
 const { ApolloServer } = require('apollo-server-express');
 const responseCachePlugin = require('apollo-server-plugin-response-cache');
 
@@ -16,6 +17,7 @@ const server = new ApolloServer({
 });
 
 const app = express();
+app.use(cors());
 server.applyMiddleware({ app });
 
 app.listen({ port: PORT }, () =>
