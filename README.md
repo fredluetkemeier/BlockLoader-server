@@ -1,2 +1,2 @@
 # mpm-server
-A backend to support the mpm client
+A back-end to support the mpm client
