@@ -14,6 +14,7 @@ const server = new ApolloServer({
     cacheControl: {
         defaultMaxAge: 300,
     },
+    playground: process.env.NODE_ENV !== 'production',
 });
 
 const app = express();
