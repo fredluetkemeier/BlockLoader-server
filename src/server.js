@@ -12,7 +12,7 @@ const server = new ApolloServer({
     resolvers,
     plugins: [responseCachePlugin()],
     cacheControl: {
-        defaultMaxAge: 300,
+        defaultMaxAge: 60 * 60,
     },
     playground: process.env.NODE_ENV !== 'production',
 });

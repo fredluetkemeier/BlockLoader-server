@@ -27,7 +27,7 @@ const typeDefs = gql`
         FABRIC
     }
 
-    type Query @cacheControl(maxAge: 600) {
+    type Query @cacheControl {
         mod(id: String!): Mod!
         mods(ids: [String!]!): [Mod!]!
         findMods(
